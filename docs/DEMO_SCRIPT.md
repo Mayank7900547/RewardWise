@@ -47,7 +47,7 @@ Add an expense with the form (type a description, amount 1200, then click **Add 
 Try amount 0: the app refuses with a clear message. Show the by-category and by-card tables and the CSV download. Press F5.
 
 ## 8. Close (30 s)
-`python -m pytest -q` (105 tests), `git log --oneline --graph --decorate --all`, `docs/architecture.md`.
+`python -m pytest -q` (124 tests), `git log --oneline --graph --decorate --all`, `docs/architecture.md`.
 
 ## If asked
 * *"Is it optimal?"* Best under this rule model for small inputs (exhaustive); a labeled heuristic beyond 100,000 combinations.
