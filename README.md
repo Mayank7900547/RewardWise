@@ -55,6 +55,8 @@ python -m pytest -q
 ```
 
 ## Docker
+Docker configuration is included but Docker was not executed in the current development environment because Docker was unavailable.
+
 ```bash
 docker compose up --build                      # app on http://localhost:8501
 docker compose --profile test run --rm tests   # run the tests in the container

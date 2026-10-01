@@ -1,5 +1,7 @@
 # Docker checklist (verify this yourself on Windows before you say "it runs in Docker")
 
+Docker configuration is included but Docker was not executed in the current development environment because Docker was unavailable.
+
 ## What has and has not been verified
 | Check | Status |
 |---|---|
@@ -18,7 +20,7 @@
    "You can now view your Streamlit app in your browser".
 4. Open **http://localhost:8501** (not 0.0.0.0). Click through all five pages.
 5. In a second terminal: `docker compose ps`. The status should become **healthy** (it may say "health: starting" for up to about a minute).
-6. Tests in the container: `docker compose --profile test run --rm tests`. Expect `105 passed`.
+6. Tests in the container: `docker compose --profile test run --rm tests`. Expect `124 passed`.
 7. Optional bind-mount check: edit `data\expenses.csv` on your machine, press F5 in the browser; the change should appear.
 8. Stop with Ctrl+C, then `docker compose down`.
 
