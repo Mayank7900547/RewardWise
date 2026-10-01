@@ -1,0 +1,106 @@
+{
+ "id": "part2_s2",
+ "part": 2,
+ "title": "Ratio stays about the same",
+ "note": "Values transcribed from the finalized scenario slides. Pairings not listed are not specified and are treated as unavailable. Breakdown-less pairings use {'total': n}.",
+ "model": "one_expense_per_card",
+ "cards": [
+  {
+   "id": "A",
+   "name": "Card A",
+   "reward_type": "cashback",
+   "base_rate": 0,
+   "fictional": true
+  },
+  {
+   "id": "B",
+   "name": "Card B",
+   "reward_type": "cashback",
+   "base_rate": 0,
+   "fictional": true
+  },
+  {
+   "id": "C",
+   "name": "Card C",
+   "reward_type": "cashback",
+   "base_rate": 0,
+   "fictional": true,
+   "milestone": {
+    "name": "Groceries voucher",
+    "eligible_spend": 10000,
+    "voucher_value": 250,
+    "eligible_categories": [
+     "groceries"
+    ]
+   }
+  }
+ ],
+ "expenses": [
+  {
+   "id": "E1",
+   "description": "Groceries",
+   "category": "groceries",
+   "amount": 12000,
+   "pair_benefits": {
+    "A": {
+     "reward": 480,
+     "discount": 0,
+     "points": 60
+    },
+    "B": {
+     "reward": 240,
+     "discount": 0,
+     "points": 0
+    },
+    "C": {
+     "reward": 468,
+     "discount": 0,
+     "points": 60
+    }
+   }
+  },
+  {
+   "id": "E2",
+   "description": "Dining",
+   "category": "dining",
+   "amount": 6000,
+   "pair_benefits": {
+    "A": {
+     "reward": 120
+    },
+    "B": {
+     "reward": 300,
+     "discount": 60,
+     "points": 0
+    },
+    "C": {
+     "reward": 60
+    }
+   }
+  },
+  {
+   "id": "E3",
+   "description": "Fuel",
+   "category": "fuel",
+   "amount": 4000,
+   "pair_benefits": {
+    "A": {
+     "reward": 40
+    },
+    "B": {
+     "reward": 80
+    },
+    "C": {
+     "reward": 160,
+     "discount": 0,
+     "points": 0
+    }
+   }
+  }
+ ],
+ "expected": {
+  "baseline": 1060,
+  "final": 1178,
+  "net": 118
+ }
+}

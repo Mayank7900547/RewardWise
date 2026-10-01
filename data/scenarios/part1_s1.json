@@ -1,0 +1,55 @@
+{
+ "id": "part1_s1",
+ "part": 1,
+ "title": "Same reward ratio, better discount and benefits",
+ "rule": "Total = Reward + Discount + Points; the higher total wins, reward ratio alone never decides.",
+ "note": "Values transcribed from the finalized scenario slides. Pairings not listed are not specified and are treated as unavailable. Breakdown-less pairings use {'total': n}.",
+ "cards": [
+  {
+   "id": "A",
+   "name": "Card A",
+   "reward_type": "cashback",
+   "base_rate": 0,
+   "fictional": true
+  },
+  {
+   "id": "B",
+   "name": "Card B",
+   "reward_type": "cashback",
+   "base_rate": 0,
+   "fictional": true
+  },
+  {
+   "id": "C",
+   "name": "Card C",
+   "reward_type": "cashback",
+   "base_rate": 0,
+   "fictional": true
+  }
+ ],
+ "expenses": [
+  {
+   "id": "E3",
+   "description": "Electronics",
+   "category": "electronics",
+   "amount": 12000,
+   "pair_benefits": {
+    "A": {
+     "reward": 240,
+     "discount": 0,
+     "points": 0
+    },
+    "C": {
+     "reward": 240,
+     "discount": 250,
+     "points": 150
+    }
+   }
+  }
+ ],
+ "rival_card": "A",
+ "expected": {
+  "card_c_total": 640,
+  "rival_total": 240
+ }
+}

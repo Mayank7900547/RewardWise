@@ -1,0 +1,11 @@
+services:
+  rewardwise:
+    build: .
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./data:/app/data   # edit cards.json / expenses.csv without rebuilding
+  tests:
+    build: .
+    profiles: ["test"]     # run with: docker compose --profile test run --rm tests
+    command: ["python", "-m", "pytest", "-q"]

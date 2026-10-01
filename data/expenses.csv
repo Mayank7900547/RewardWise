@@ -1,0 +1,7 @@
+date,description,category,amount,status,card
+2026-09-06,Electronics store (already paid),shopping,15000,actual,milestone
+2026-09-27,Monthly groceries,groceries,8000,planned,
+2026-09-28,Online shopping,shopping,7000,planned,
+2026-09-28,Restaurants and food delivery,dining,5000,planned,
+2026-09-29,Fuel for the month,fuel,4000,planned,
+2026-09-30,Household and other,other,6000,planned,

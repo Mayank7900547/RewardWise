@@ -1,0 +1,57 @@
+[
+  {
+    "id": "shopping",
+    "name": "Card A — Shopping",
+    "issuer": "Sample Bank One (fictional)",
+    "reward_type": "cashback",
+    "base_rate": 0.005,
+    "category_rates": {"shopping": 0.05},
+    "monthly_reward_cap": 500,
+    "point_value": 1,
+    "reward_balance": 180,
+    "milestone": null,
+    "fictional": true
+  },
+  {
+    "id": "grocery",
+    "name": "Card B — Groceries",
+    "issuer": "Sample Bank Two (fictional)",
+    "reward_type": "points",
+    "base_rate": 1,
+    "category_rates": {"groceries": 5},
+    "monthly_reward_cap": null,
+    "point_value": 0.2,
+    "reward_balance": 1250,
+    "milestone": null,
+    "fictional": true
+  },
+  {
+    "id": "milestone",
+    "name": "Card C — Milestone",
+    "issuer": "Sample Bank Three (fictional)",
+    "reward_type": "cashback",
+    "base_rate": 0.005,
+    "category_rates": {},
+    "excluded_categories": ["fuel", "utilities"],
+    "monthly_reward_cap": null,
+    "point_value": 1,
+    "reward_balance": 0,
+    "milestone": {"name": "Shopping voucher", "eligible_spend": 20000, "voucher_value": 1000, "period": "monthly"},
+    "fictional": true
+  },
+  {
+    "id": "travel",
+    "name": "Card D — Travel & Fuel",
+    "issuer": "Sample Bank Four (fictional)",
+    "reward_type": "points",
+    "base_rate": 0,
+    "category_rates": {"travel": 6, "fuel": 3},
+    "eligible_categories": ["travel", "fuel"],
+    "min_transaction": 500,
+    "monthly_reward_cap": 400,
+    "point_value": 0.25,
+    "reward_balance": 2400,
+    "milestone": null,
+    "fictional": true
+  }
+]
