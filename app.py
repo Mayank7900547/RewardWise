@@ -11,11 +11,13 @@ from rewardwise.data import CATEGORIES, STATUSES, load_cards, load_expenses, nor
 from rewardwise.formatting import inr, money
 from rewardwise.goals import best_immediate_allocation, evaluate_allocation, recommend_allocation
 from rewardwise.recommend import explain_plan, plan_story, rank_cards_for_expense, strategy_comparison
+from rewardwise.rewards import reward_for_expense
+from rewardwise.scenario_groups import load_scenario, solve_part2
 from rewardwise.tracker import (available_months, filter_month, planned_expenses,
                                 prior_spend_from_actuals, summarize)
 
 DATA = Path(__file__).parent / "data"
-PAGES = ["Dashboard", "Credit card portfolio", "Expenses", "Card comparison", "Monthly allocation"]
+PAGES = ["Dashboard", "Credit card portfolio", "Expenses", "Card comparison", "Monthly allocation", "Scenario Walkthroughs (Part 1 & 2)"]
 
 st.set_page_config(page_title="RewardWise", page_icon="💳", layout="wide")
 
@@ -346,6 +348,225 @@ def page_allocation():
     st.caption("Estimates use fictional rules; 'optimal' is relative to this rule model only.")
 
 
+def page_scenarios():
+    st.header("Scenario Walkthroughs (Part 1 & 2)")
+    st.info(
+        "**Demonstration Scenario Model:** These interactive walkthroughs execute the finalized presentation scenario fixtures "
+        "through the RewardWise engine using the **one-expense-per-card** slide model."
+    )
+
+    part = st.radio(
+        "Select Scenario Part",
+        ["Part 1: Total Benefit vs Reward Ratio", "Part 2: Milestone Trade-Offs & Search Groups"],
+        horizontal=True,
+    )
+
+    if part == "Part 1: Total Benefit vs Reward Ratio":
+        part1_scenarios = {
+            "part1_s1": "Scenario 1: Same reward ratio, better discount and benefits",
+            "part1_s2": "Scenario 2: Lower reward, but benefits outweigh it",
+            "part1_s3": "Scenario 3: Higher reward wins",
+        }
+        selected = st.selectbox(
+            "Select Scenario",
+            list(part1_scenarios.keys()),
+            format_func=lambda k: part1_scenarios[k],
+        )
+        s = load_scenario(selected)
+        cards = s["cards"]
+        exp = s["expenses"][0]
+        card_map = {c["id"]: c for c in cards}
+        cand_card = card_map.get("C", cards[0])
+        rival_id = s.get("rival_card", "A")
+        rival_card = card_map.get(rival_id, cards[1])
+
+        cand_benefit = reward_for_expense(cand_card, exp)
+        rival_benefit = reward_for_expense(rival_card, exp)
+        diff = round(cand_benefit["total_benefit"] - rival_benefit["total_benefit"], 2)
+
+        st.subheader(f"Part 1 — {s['title']}")
+        if s.get("rule"):
+            st.caption(f"Rule: {s['rule']}")
+
+        st.markdown(
+            f"**Evaluated Expense:** {exp.get('description', exp.get('id', 'Purchase'))} "
+            f"(`{exp['category'].title()}`) — **{inr(exp['amount'])}**"
+        )
+
+        c1, c2, c3 = st.columns(3)
+        c1.metric(f"Candidate: {cand_card['name']} Total Benefit", money(cand_benefit["total_benefit"]))
+        c2.metric(f"Rival: {rival_card['name']} Total Benefit", money(rival_benefit["total_benefit"]))
+        c3.metric("Difference", f"+{money(diff)}", delta=f"{money(diff)} advantage")
+
+        st.markdown("**Benefit Breakdown Comparison**")
+        cand_other = cand_benefit["other_benefit_value"] + cand_benefit.get("unitemised_value", 0.0)
+        rival_other = rival_benefit["other_benefit_value"] + rival_benefit.get("unitemised_value", 0.0)
+        table = pd.DataFrame([
+            {"Component": "Reward (Cashback/Points Rate)", f"Candidate ({cand_card['name']})": money(cand_benefit["value"]), f"Rival ({rival_card['name']})": money(rival_benefit["value"])},
+            {"Component": "Discount", f"Candidate ({cand_card['name']})": money(cand_benefit["discount_value"]), f"Rival ({rival_card['name']})": money(rival_benefit["discount_value"])},
+            {"Component": "Points Value", f"Candidate ({cand_card['name']})": money(cand_benefit["points_value"]), f"Rival ({rival_card['name']})": money(rival_benefit["points_value"])},
+            {"Component": "Other Benefits", f"Candidate ({cand_card['name']})": money(cand_other), f"Rival ({rival_card['name']})": money(rival_other)},
+            {"Component": "Total Benefit", f"Candidate ({cand_card['name']})": money(cand_benefit["total_benefit"]), f"Rival ({rival_card['name']})": money(rival_benefit["total_benefit"])},
+        ])
+        st.table(table.set_index("Component"))
+
+        st.success(
+            f"**Takeaway:** Total Benefit = Reward + Discount + Points Value + Other Benefits. "
+            f"**{cand_card['name']}** wins with a Total Benefit of **{money(cand_benefit['total_benefit'])}** "
+            f"vs **{rival_card['name']}**'s **{money(rival_benefit['total_benefit'])}** (an advantage of **+{money(diff)}**). "
+            "Reward ratio alone does not dictate card choice."
+        )
+
+    else:
+        part2_scenarios = {
+            "part2_s1": "Scenario 1: Lower ratio accepted for the milestone",
+            "part2_s2": "Scenario 2: Ratio stays about the same",
+            "part2_s3": "Scenario 3: Groups introduced: Group 3 pairing replaces a Group 1 pairing",
+            "part2_s4": "Scenario 4: Groups introduced: high-reward pairing in Group 3",
+            "part2_s5": "Scenario 5: Groups introduced: higher reward pairing in Group 3",
+        }
+        selected = st.selectbox(
+            "Select Scenario",
+            list(part2_scenarios.keys()),
+            format_func=lambda k: part2_scenarios[k],
+        )
+        s = load_scenario(selected)
+        cards, expenses = s["cards"], s["expenses"]
+        card_map = {c["id"]: c for c in cards}
+
+        res = solve_part2(cards, expenses)
+        report = res["report"]
+        base_alloc = res["baseline_allocation"]
+        final_alloc = res["final_allocation"]
+
+        st.subheader(f"Part 2 — {s['title']}")
+
+        # Milestone/Goal definition banner
+        milestone_cards = [c for c in cards if c.get("milestone")]
+        for c in milestone_cards:
+            m = c["milestone"]
+            cat_info = f" on {', '.join(m['eligible_categories'])}" if m.get("eligible_categories") else ""
+            st.info(f"🎯 **Milestone Goal:** **{c['name']}** awards a **{inr(m['voucher_value'])} voucher** once eligible spend reaches **{inr(m['eligible_spend'])}**{cat_info}.")
+
+        # Metrics row
+        st.markdown("**Optimization Score Summary**")
+        m1, m2, m3, m4, m5 = st.columns(5)
+        m1.metric("Baseline Immediate Benefit", money(report["baseline_score"]))
+        m2.metric(
+            "Revised Immediate Benefit",
+            money(report["new_immediate_benefit"]),
+            delta=f"-{money(report['immediate_benefit_lost'])}" if report["immediate_benefit_lost"] > 0 else None,
+            delta_color="inverse",
+        )
+        m3.metric("Milestone Bonus", money(report["milestone_bonus"]))
+        m4.metric("Final Score", money(report["final_score"]))
+        m5.metric("Net Gain", f"+{money(report['net_gain'])}", delta=f"{money(report['net_gain'])} net")
+
+        # Reallocation Dynamics Callout
+        with st.container(border=True):
+            st.markdown("**Milestone Reallocation Dynamics**")
+            d1, d2 = st.columns(2)
+            if report.get("trigger"):
+                trig_eid = report["trigger"]["expense"]
+                trig_cid = report["trigger"]["card"]
+                trig_cname = card_map.get(trig_cid, {}).get("name", f"Card {trig_cid}")
+                d1.markdown(f"**Milestone Trigger:** `{trig_eid}` forced onto **{trig_cname}** (crosses spend target)")
+            else:
+                d1.markdown("**Milestone Trigger:** None")
+
+            if report.get("displaced"):
+                disp_strs = [
+                    f"`{d['expense']}` (was on **{card_map.get(d['was_on'], {}).get('name', d['was_on'])}**, "
+                    f"re-evaluated → **{card_map.get(d['now_on'], {}).get('name', d['now_on']) if d['now_on'] else 'Next Group'}**)"
+                    for d in report["displaced"]
+                ]
+                d2.markdown(f"**Displaced Expense(s):** {'; '.join(disp_strs)}")
+            else:
+                d2.markdown("**Displaced Expense(s):** None")
+
+        # Allocation Table
+        st.markdown("**Allocation Comparison (One-Expense-Per-Card Model)**")
+        alloc_rows = []
+        for i, exp in enumerate(expenses):
+            eid = exp.get("id", f"E{i+1}")
+            b_cid = base_alloc[i] if i < len(base_alloc) else None
+            f_cid = final_alloc[i] if i < len(final_alloc) else None
+
+            b_cname = card_map[b_cid]["name"] if b_cid in card_map else "—"
+            f_cname = card_map[f_cid]["name"] if f_cid in card_map else "—"
+
+            b_benefit = reward_for_expense(card_map[b_cid], exp)["total_benefit"] if b_cid in card_map else 0.0
+            f_benefit = reward_for_expense(card_map[f_cid], exp)["total_benefit"] if f_cid in card_map else 0.0
+
+            if report.get("trigger") and report["trigger"]["expense"] == eid:
+                status = "⭐ Milestone Trigger"
+            elif any(d["expense"] == eid for d in report.get("displaced", [])):
+                status = "🔄 Displaced & Reallocated"
+            elif b_cid != f_cid:
+                status = "Changed"
+            elif b_cid is not None:
+                status = "Retained"
+            else:
+                status = "Unallocated"
+
+            alloc_rows.append({
+                "Expense": f"{eid}: {exp.get('description', '')}",
+                "Category": exp["category"].title(),
+                "Amount": inr(exp["amount"]),
+                "Baseline Card": b_cname,
+                "Baseline Benefit": money(b_benefit) if b_cid else "—",
+                "Revised Card": f_cname,
+                "Revised Benefit": money(f_benefit) if f_cid else "—",
+                "Role / Change": status,
+            })
+        st.dataframe(pd.DataFrame(alloc_rows), hide_index=True, width="stretch")
+
+        # Plain language explanation
+        st.markdown("**Why the Allocation Changed:**")
+        trig_desc = f"`{report['trigger']['expense']}` is assigned to **{card_map.get(report['trigger']['card'], {}).get('name', 'Card ' + str(report['trigger']['card']))}**" if report.get("trigger") else "An expense is reassigned"
+        disp_desc = f", displacing `{', '.join(d['expense'] for d in report['displaced'])}` which is re-evaluated" if report.get("displaced") else ""
+        st.markdown(
+            f"- Baseline optimization achieved an Immediate Benefit of **{money(report['baseline_immediate_benefit'])}** without considering milestone bonuses.\n"
+            f"- To unlock the **{money(report['milestone_bonus'])}** milestone voucher, {trig_desc}{disp_desc}.\n"
+            f"- Immediate Benefit drops by **{money(report['immediate_benefit_lost'])}** (from {money(report['baseline_immediate_benefit'])} to {money(report['new_immediate_benefit'])}), "
+            f"but adding the **{money(report['milestone_bonus'])}** milestone bonus produces a **Final Score of {money(report['final_score'])}**.\n"
+            f"- **Verdict:** **Accepted** — resulting in a **Net Gain of +{money(report['net_gain'])}**."
+        )
+
+        # Search Groups Breakdown
+        st.markdown("**Search Groups Breakdown (One-Slot-Per-Card Model)**")
+        st.caption("Group 1 is the best one-slot allocation (baseline). Group 2 is the best one-slot allocation over the remaining expenses, and Group 3 over the remainder.")
+        grp_data = []
+        for g in res.get("groups", []):
+            pairs_str = ", ".join([f"{p[0]} → Card {p[1]}" for p in g.get("pairs", [])])
+            grp_data.append({
+                "Group": f"Group {g['group']}",
+                "Allocated Pairings": pairs_str,
+                "Group Immediate Benefit": money(g["total"]),
+                "Permutations Evaluated": f"{g['ways_tried']:,}",
+            })
+        st.table(pd.DataFrame(grp_data).set_index("Group"))
+
+        # Collapsible full cards & expenses list
+        with st.expander("View Scenario Cards & Planned Expenses", expanded=False):
+            col_c, col_e = st.columns(2)
+            with col_c:
+                st.markdown("**Cards**")
+                st.dataframe(pd.DataFrame([{
+                    "Card": c["name"],
+                    "Reward Type": c["reward_type"].title(),
+                    "Milestone": f"{inr(c['milestone']['voucher_value'])} at {inr(c['milestone']['eligible_spend'])}" if c.get("milestone") else "None"
+                } for c in cards]), hide_index=True, width="stretch")
+            with col_e:
+                st.markdown("**Planned Expenses**")
+                st.dataframe(pd.DataFrame([{
+                    "ID": e.get("id", f"E{i+1}"),
+                    "Description": e.get("description", ""),
+                    "Category": e.get("category", "").title(),
+                    "Amount": inr(e.get("amount", 0))
+                } for i, e in enumerate(expenses)]), hide_index=True, width="stretch")
+
+
 # ----------------------------------------------------------------------------- main
 init_state()
 st.title("💳 RewardWise")
@@ -353,4 +574,5 @@ st.caption("Goal-oriented credit card rewards optimization | fictional sample ca
 page = st.sidebar.radio("Navigate", PAGES)
 st.sidebar.warning(FICTIONAL)
 {"Dashboard": page_dashboard, "Credit card portfolio": page_portfolio, "Expenses": page_expenses,
- "Card comparison": page_compare, "Monthly allocation": page_allocation}[page]()
+ "Card comparison": page_compare, "Monthly allocation": page_allocation,
+ "Scenario Walkthroughs (Part 1 & 2)": page_scenarios}[page]()

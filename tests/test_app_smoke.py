@@ -4,7 +4,7 @@ from streamlit.testing.v1 import AppTest
 
 from conftest import ROOT
 
-PAGES = ["Dashboard", "Credit card portfolio", "Expenses", "Card comparison", "Monthly allocation"]
+PAGES = ["Dashboard", "Credit card portfolio", "Expenses", "Card comparison", "Monthly allocation", "Scenario Walkthroughs (Part 1 & 2)"]
 
 
 @pytest.mark.parametrize("page", PAGES)
@@ -19,3 +19,19 @@ def test_dashboard_shows_recommended_reward_metric():
     at = AppTest.from_file(str(ROOT / "app.py"), default_timeout=30).run()
     labels = [m.label for m in at.metric]
     assert "Final Score with recommended plan" in labels
+
+
+def test_scenario_walkthroughs_page_renders_part1_and_part2():
+    at = AppTest.from_file(str(ROOT / "app.py"), default_timeout=30).run()
+    at.sidebar.radio[0].set_value("Scenario Walkthroughs (Part 1 & 2)").run()
+    assert not at.exception
+    labels = [m.label for m in at.metric]
+    assert any("Total Benefit" in l for l in labels)
+
+    at.radio[0].set_value("Part 2: Milestone Trade-Offs & Search Groups").run()
+    assert not at.exception
+    labels = [m.label for m in at.metric]
+    assert "Baseline Immediate Benefit" in labels
+    assert "Final Score" in labels
+    assert "Net Gain" in labels
+
